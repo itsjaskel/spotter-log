@@ -22,8 +22,6 @@ def calculate_trip(route: dict, current_cycle_hours: float) -> dict:
     segments = route["segments"]
     waypoints = route["waypoints"]
 
-    # Build a flat list of events to process in order:
-    # each event has a miles marker, type, and duration
     events = _build_events(segments, waypoints)
 
     logs = []
@@ -32,7 +30,6 @@ def calculate_trip(route: dict, current_cycle_hours: float) -> dict:
     event_index = 0
     miles_covered = 0.0
 
-    # Each iteration represents one duty day
     while event_index < len(events):
         day_log, event_index, miles_covered, miles_since_fuel, cycle_hours = _simulate_day(
             events, event_index, miles_covered, miles_since_fuel, cycle_hours, len(logs)
@@ -54,20 +51,16 @@ def _build_events(segments: list, waypoints: list) -> list:
         segment_miles = segment["distance_miles"]
         segment_start = cumulative_miles
 
-        # Add fuel stops within this segment every FUEL_INTERVAL_MILES
         miles_into_segment = 0.0
         while miles_into_segment + FUEL_INTERVAL_MILES < segment_miles:
             miles_into_segment += FUEL_INTERVAL_MILES
             events.append({
                 "type": "fuel",
                 "at_mile": segment_start + miles_into_segment,
-                "drive_miles_before": FUEL_INTERVAL_MILES if not events or events[-1]["type"] != "fuel"
-                    else miles_into_segment - (events[-1]["at_mile"] - segment_start),
                 "duration_hours": FUEL_STOP_HOURS,
                 "location": f"Mile {segment_start + miles_into_segment:.0f}",
             })
 
-        # Pickup happens at the end of the first segment (at pickup waypoint)
         if i == 0:
             events.append({
                 "type": "pickup",
@@ -76,7 +69,6 @@ def _build_events(segments: list, waypoints: list) -> list:
                 "location": waypoints[1]["name"],
             })
 
-        # Dropoff happens at the end of the last segment
         if i == len(segments) - 1:
             events.append({
                 "type": "dropoff",
@@ -90,15 +82,22 @@ def _build_events(segments: list, waypoints: list) -> list:
     return sorted(events, key=lambda e: e["at_mile"])
 
 
+def _hos_limit(shift_start, current_time, driving_today, cycle_hours):
+    """How many hours the driver can still drive before hitting an HOS limit (not counting break)."""
+    return min(
+        (shift_start + MAX_WINDOW_HOURS) - current_time,
+        MAX_DRIVING_HOURS - driving_today,
+        MAX_CYCLE_HOURS - cycle_hours,
+    )
+
+
 def _simulate_day(events, event_index, miles_covered, miles_since_fuel, cycle_hours, day_number):
     """
     Simulates a single duty day. Drives until HOS limits are hit, then takes 10hrs off.
-    Returns the completed day log and updated state for the next day.
+    After a 30-min break the driver continues driving up to the 11-hr / 14-hr limits.
     """
-    DAY_START_HOUR = 0.0  # all times relative to midnight of this day (hour 0-24+)
-    shift_start = 0.0     # driver starts shift at midnight for simplicity
+    shift_start = 0.0
     current_time = shift_start
-
     driving_today = 0.0
     cumulative_driving_since_break = 0.0
     duty_entries = []
@@ -112,77 +111,82 @@ def _simulate_day(events, event_index, miles_covered, miles_since_fuel, cycle_ho
                 "location": location,
             })
 
-    def hours_remaining_today():
-        window_remaining = (shift_start + MAX_WINDOW_HOURS) - current_time
-        driving_remaining = MAX_DRIVING_HOURS - driving_today
-        cycle_remaining = MAX_CYCLE_HOURS - cycle_hours
-        break_driving_remaining = BREAK_TRIGGER_HOURS - cumulative_driving_since_break
-        return min(window_remaining, driving_remaining, cycle_remaining, break_driving_remaining)
-
-    # Process events one by one until we run out of HOS time for the day
     while event_index < len(events):
+        hos_can_drive = _hos_limit(shift_start, current_time, driving_today, cycle_hours)
+
+        if hos_can_drive <= 0:
+            break  # hard HOS limit reached — end the day
+
         event = events[event_index]
         miles_to_event = event["at_mile"] - miles_covered
-        hours_to_drive = miles_to_event / AVG_SPEED_MPH
+        hours_to_event = miles_to_event / AVG_SPEED_MPH
 
-        can_drive = hours_remaining_today()
+        # How far until the 30-min break is required
+        until_break = BREAK_TRIGGER_HOURS - cumulative_driving_since_break
 
-        if can_drive <= 0:
-            break  # no driving time left today
+        # Effective drive capacity this stretch: break trigger or HOS limit, whichever comes first
+        can_drive_now = min(until_break, hos_can_drive)
 
-        if hours_to_drive <= can_drive:
-            # We can reach this event today
-            drive_end = current_time + hours_to_drive
+        if hours_to_event <= can_drive_now:
+            # Reach the event without needing a break first
+            drive_end = current_time + hours_to_event
             add_entry("driving", current_time, drive_end)
-            driving_today += hours_to_drive
-            cumulative_driving_since_break += hours_to_drive
-            cycle_hours += hours_to_drive
+            driving_today += hours_to_event
+            cumulative_driving_since_break += hours_to_event
+            cycle_hours += hours_to_event
             miles_covered = event["at_mile"]
             miles_since_fuel += miles_to_event
             current_time = drive_end
 
-            # Insert mandatory 30-min break if 8 hrs driving reached
+            # Take break now if 8-hr trigger reached
             if cumulative_driving_since_break >= BREAK_TRIGGER_HOURS:
                 add_entry("off_duty", current_time, current_time + BREAK_DURATION_HOURS, "Rest break")
                 current_time += BREAK_DURATION_HOURS
                 cumulative_driving_since_break = 0.0
 
-            # Process the event itself (pickup, dropoff, fuel)
+            # Process the stop event
             event_end = current_time + event["duration_hours"]
             status = "on_duty" if event["type"] in ("pickup", "dropoff", "fuel") else "off_duty"
             add_entry(status, current_time, event_end, event["location"])
             cycle_hours += event["duration_hours"]
             current_time = event_end
-
             if event["type"] == "fuel":
                 miles_since_fuel = 0.0
 
             event_index += 1
-        else:
-            # Drive as far as possible today
-            drive_end = current_time + can_drive
-            partial_miles = can_drive * AVG_SPEED_MPH
+
+        elif can_drive_now == until_break and until_break < hos_can_drive:
+            # Drive until break trigger, take the break, then continue the loop
+            drive_end = current_time + until_break
+            partial_miles = until_break * AVG_SPEED_MPH
             add_entry("driving", current_time, drive_end)
-            driving_today += can_drive
-            cycle_hours += can_drive
+            driving_today += until_break
+            cumulative_driving_since_break = BREAK_TRIGGER_HOURS
+            cycle_hours += until_break
             miles_covered += partial_miles
             miles_since_fuel += partial_miles
             current_time = drive_end
 
-            # Insert break if needed mid-drive
-            if cumulative_driving_since_break + can_drive >= BREAK_TRIGGER_HOURS:
-                add_entry("off_duty", current_time, current_time + BREAK_DURATION_HOURS, "Rest break")
-                current_time += BREAK_DURATION_HOURS
-                cumulative_driving_since_break = 0.0
-            else:
-                cumulative_driving_since_break += can_drive
+            add_entry("off_duty", current_time, current_time + BREAK_DURATION_HOURS, "Rest break")
+            current_time += BREAK_DURATION_HOURS
+            cumulative_driving_since_break = 0.0
+            # Do NOT break — loop continues with fresh break counter
 
-            break  # ran out of driving time before reaching next event
+        else:
+            # HOS limit (11hr driving or 14hr window or 70hr cycle) reached before next event or break
+            drive_end = current_time + hos_can_drive
+            partial_miles = hos_can_drive * AVG_SPEED_MPH
+            add_entry("driving", current_time, drive_end)
+            driving_today += hos_can_drive
+            cumulative_driving_since_break += hos_can_drive
+            cycle_hours += hos_can_drive
+            miles_covered += partial_miles
+            miles_since_fuel += partial_miles
+            current_time = drive_end
+            break  # true end of driving day
 
-    # End of driving day — take mandatory 10-hr off duty
-    off_start = current_time
-    off_end = off_start + MIN_OFF_DUTY_HOURS
-    add_entry("off_duty", off_start, off_end, "Sleeper berth / off duty")
+    # Mandatory 10-hr off duty at end of day
+    add_entry("off_duty", current_time, current_time + MIN_OFF_DUTY_HOURS, "Sleeper berth / off duty")
 
     date = (datetime.today() + timedelta(days=day_number)).strftime("%Y-%m-%d")
 
