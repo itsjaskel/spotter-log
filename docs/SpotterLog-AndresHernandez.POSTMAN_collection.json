@@ -1,0 +1,46 @@
+{
+  "info": {
+    "_postman_id": "8f4eed84-50f0-4fb0-a1cc-c31fecd9a491",
+    "name": "SpotterLog-AndresHernandez",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12948321"
+  },
+  "item": [
+    {
+      "name": "http://127.0.0.1:8000/api/trip/",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"current_location\": \"Chicago, IL\",\r\n    \"pickup_location\": \"Dallas, TX\",\r\n    \"dropoff_location\": \"Miami, FL\",\r\n    \"current_cycle_hours\": 20\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/trip/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "8000",
+          "path": [
+            "api",
+            "trip",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
