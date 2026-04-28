@@ -1,0 +1,72 @@
+import requests
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
+HEADERS = {"User-Agent": "SpotterLog/1.0 (jaskel.systems@gmail.com)"}
+METERS_TO_MILES = 0.000621371
+SECONDS_TO_HOURS = 1 / 3600
+
+
+# Converts a location string (city, address, etc.) to lat/lon coordinates using Nominatim.
+def geocode(location: str) -> dict:
+    response = requests.get(
+        NOMINATIM_URL,
+        params={"q": location, "format": "json", "limit": 1},
+        headers=HEADERS,
+        timeout=10,
+    )
+    response.raise_for_status()
+    results = response.json()
+    if not results:
+        raise ValueError(f"Location not found: {location}")
+    result = results[0]
+    return {
+        "name": result.get("display_name", location),
+        "lat": float(result["lat"]),
+        "lon": float(result["lon"]),
+    }
+
+
+# Fetches the driving route between waypoints from OSRM, returning distance (miles),
+# duration (hours) per segment, and the full geometry for map rendering.
+def get_route(waypoints: list[dict]) -> dict:
+    coords = ";".join(f"{p['lon']},{p['lat']}" for p in waypoints)
+    response = requests.get(
+        f"{OSRM_URL}/{coords}",
+        params={"overview": "full", "geometries": "geojson", "steps": "false"},
+        headers=HEADERS,
+        timeout=15,
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    if data.get("code") != "Ok":
+        raise ValueError(f"OSRM routing error: {data.get('message', 'unknown')}")
+
+    route = data["routes"][0]
+    legs = route["legs"]
+    geometry_coords = route["geometry"]["coordinates"]  # [[lon, lat], ...]
+
+    segments = []
+    for i, leg in enumerate(legs):
+        segments.append({
+            "from": waypoints[i]["name"],
+            "to": waypoints[i + 1]["name"],
+            "distance_miles": round(leg["distance"] * METERS_TO_MILES, 2),
+            "duration_hours": round(leg["duration"] * SECONDS_TO_HOURS, 4),
+        })
+
+    return {
+        "waypoints": waypoints,
+        "segments": segments,
+        "total_miles": round(sum(s["distance_miles"] for s in segments), 2),
+        "geometry": [[c[1], c[0]] for c in geometry_coords],  # convert to [lat, lon]
+    }
+
+
+# Public entry point: geocodes the three locations and returns the full route data.
+def build_route(current_location: str, pickup_location: str, dropoff_location: str) -> dict:
+    current = geocode(current_location)
+    pickup = geocode(pickup_location)
+    dropoff = geocode(dropoff_location)
+    return get_route([current, pickup, dropoff])
