@@ -30,7 +30,22 @@ def calculate_trip(route: dict, current_cycle_hours: float) -> dict:
     event_index = 0
     miles_covered = 0.0
 
-    while event_index < len(events):
+    MAX_DAYS = 30
+
+    while event_index < len(events) and len(logs) < MAX_DAYS:
+        if cycle_hours >= MAX_CYCLE_HOURS:
+            day_number = len(logs)
+            date = (datetime.today() + timedelta(days=day_number)).strftime("%Y-%m-%d")
+            logs.append({
+                "day": day_number + 1,
+                "date": date,
+                "entries": [{"status": "off_duty", "start": 0.0, "end": 24.0, "location": "34-hour cycle restart"}],
+                "total_driving_hours": 0.0,
+                "cycle_hours_used": round(cycle_hours, 2),
+            })
+            cycle_hours = 0.0
+            continue
+
         day_log, event_index, miles_covered, miles_since_fuel, cycle_hours = _simulate_day(
             events, event_index, miles_covered, miles_since_fuel, cycle_hours, len(logs)
         )

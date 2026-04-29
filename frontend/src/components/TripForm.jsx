@@ -93,7 +93,7 @@ export default function TripForm() {
             type="submit"
             variant="contained"
             fullWidth
-            disabled={isLoading || isDone}
+            disabled={isLoading}
             size="large"
             startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : <LocalShippingIcon />}
           >
