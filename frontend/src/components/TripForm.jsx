@@ -21,6 +21,11 @@ export default function TripForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    const isValid = form.current_location.trim() &&
+                    form.pickup_location.trim() &&
+                    form.dropoff_location.trim() &&
+                    form.current_cycle_hours !== ''
+    if (!isValid) return
     dispatch(fetchTrip({ ...form, current_cycle_hours: parseFloat(form.current_cycle_hours) }))
   }
 
