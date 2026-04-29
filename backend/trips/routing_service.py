@@ -33,7 +33,7 @@ def get_route(waypoints: list[dict]) -> dict:
     coords = ";".join(f"{p['lon']},{p['lat']}" for p in waypoints)
     response = requests.get(
         f"{OSRM_URL}/{coords}",
-        params={"overview": "full", "geometries": "geojson", "steps": "false"},
+        params={"overview": "simplified", "geometries": "geojson", "steps": "false"},
         headers=HEADERS,
         timeout=15,
     )
