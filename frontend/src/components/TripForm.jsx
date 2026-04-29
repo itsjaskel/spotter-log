@@ -23,10 +23,12 @@ export default function TripForm() {
   const handleSubmit = (e) => {
     e.preventDefault()
     setSubmitted(true)
+    const cycleVal = parseFloat(form.current_cycle_hours)
     const isValid = form.current_location.trim() &&
                     form.pickup_location.trim() &&
                     form.dropoff_location.trim() &&
-                    form.current_cycle_hours !== ''
+                    form.current_cycle_hours !== '' &&
+                    cycleVal >= 0 && cycleVal <= 70
     if (!isValid) return
     dispatch(fetchTrip({ ...form, current_cycle_hours: parseFloat(form.current_cycle_hours) }))
   }
@@ -97,8 +99,8 @@ export default function TripForm() {
           type="number"
           inputProps={{ min: 0, max: 70, step: 0.5 }}
           placeholder="e.g. 20"
-          error={submitted && form.current_cycle_hours === ''}
-          helperText={submitted && form.current_cycle_hours === '' ? 'This field is required' : ''}
+          error={submitted && (form.current_cycle_hours === '' || parseFloat(form.current_cycle_hours) < 0 || parseFloat(form.current_cycle_hours) > 70)}
+          helperText={submitted && form.current_cycle_hours === '' ? 'This field is required' : submitted && (parseFloat(form.current_cycle_hours) < 0 || parseFloat(form.current_cycle_hours) > 70) ? 'Must be between 0 and 70' : ''}
           InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" color="action" /></InputAdornment> }}
         />
 
