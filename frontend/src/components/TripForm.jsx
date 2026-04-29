@@ -16,11 +16,13 @@ export default function TripForm() {
   const dispatch = useDispatch()
   const { status, error } = useSelector((state) => state.trip)
   const [form, setForm] = useState(INITIAL)
+  const [submitted, setSubmitted] = useState(false)
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setSubmitted(true)
     const isValid = form.current_location.trim() &&
                     form.pickup_location.trim() &&
                     form.dropoff_location.trim() &&
@@ -31,6 +33,7 @@ export default function TripForm() {
 
   const handleReset = () => {
     setForm(INITIAL)
+    setSubmitted(false)
     dispatch(resetTrip())
   }
 
@@ -53,6 +56,8 @@ export default function TripForm() {
           required
           fullWidth
           placeholder="e.g. Chicago, IL"
+          error={submitted && !form.current_location.trim()}
+          helperText={submitted && !form.current_location.trim() ? 'This field is required' : ''}
           InputProps={{ startAdornment: <InputAdornment position="start"><MyLocationIcon fontSize="small" color="action" /></InputAdornment> }}
         />
 
@@ -64,6 +69,8 @@ export default function TripForm() {
           required
           fullWidth
           placeholder="e.g. Dallas, TX"
+          error={submitted && !form.pickup_location.trim()}
+          helperText={submitted && !form.pickup_location.trim() ? 'This field is required' : ''}
           InputProps={{ startAdornment: <InputAdornment position="start"><PlaceIcon fontSize="small" color="action" /></InputAdornment> }}
         />
 
@@ -75,6 +82,8 @@ export default function TripForm() {
           required
           fullWidth
           placeholder="e.g. Miami, FL"
+          error={submitted && !form.dropoff_location.trim()}
+          helperText={submitted && !form.dropoff_location.trim() ? 'This field is required' : ''}
           InputProps={{ startAdornment: <InputAdornment position="start"><FlagIcon fontSize="small" color="action" /></InputAdornment> }}
         />
 
@@ -88,6 +97,8 @@ export default function TripForm() {
           type="number"
           inputProps={{ min: 0, max: 70, step: 0.5 }}
           placeholder="e.g. 20"
+          error={submitted && form.current_cycle_hours === ''}
+          helperText={submitted && form.current_cycle_hours === '' ? 'This field is required' : ''}
           InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" color="action" /></InputAdornment> }}
         />
 
