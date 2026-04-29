@@ -1,2 +1,5 @@
 [build]
 dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+releaseCommand = "python manage.py migrate"
