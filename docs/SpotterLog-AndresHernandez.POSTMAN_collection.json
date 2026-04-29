@@ -41,6 +41,41 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Production - https://spotter-log-production.up.railway.app/api/trip/",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"current_location\": \"Chicago, IL\",\r\n    \"pickup_location\": \"Dallas, TX\",\r\n    \"dropoff_location\": \"Miami, FL\",\r\n    \"current_cycle_hours\": 20\r\n}\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://spotter-log-production.up.railway.app/api/trip/",
+          "protocol": "https",
+          "host": [
+            "spotter-log-production",
+            "up",
+            "railway",
+            "app"
+          ],
+          "path": [
+            "api",
+            "trip",
+            ""
+          ]
+        }
+      },
+      "response": []
     }
   ]
 }
