@@ -8,9 +8,16 @@ calculates the route, enforces HOS limits, and generates the Daily Log Sheets fo
 
 ---
 
+## Links
+
+- GitHub:      https://github.com/itsjaskel/spotter-log
+- Production:  https://spotter-log.vercel.app
+
+---
+
 ## Prerequisites
 
-- Python 3.11 or higher  →  https://www.python.org/downloads/
+- Python 3.12 or higher  →  https://www.python.org/downloads/
 - Node.js 18 or higher   →  https://nodejs.org/
 - Git                    →  https://git-scm.com/
 
@@ -93,7 +100,18 @@ The app is now available at:  http://localhost:5173
 
 ---
 
-## 4. Using the app
+## 4. Postman collection
+
+A ready-to-use Postman collection is included at:
+
+    docs/SpotterLog.postman_collection.json
+
+Import it into Postman to test the API directly against the production backend
+(https://spotter-log-production.up.railway.app/api) or your local server.
+
+---
+
+## 5. Using the app
 
 1. Open http://localhost:5173 in your browser
 2. Fill in the form:
@@ -108,7 +126,7 @@ The app is now available at:  http://localhost:5173
 
 ---
 
-## 5. Tech stack
+## 6. Tech stack
 
 Backend
   - Django 6 + Django REST Framework
@@ -129,7 +147,7 @@ Deployment
 
 ---
 
-## 6. Project structure
+## 7. Project structure
 
     spotter-log/
     ├── backend/
