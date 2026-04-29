@@ -66,6 +66,11 @@ export default function App() {
           )}
         </Grid>
       </Container>
+      <Box component="footer" sx={{ textAlign: 'center', py: 2, mt: 2 }}>
+        <Typography variant="caption" color="text.disabled">
+          Built by Andres Hernandez
+        </Typography>
+      </Box>
     </Box>
   )
 }
