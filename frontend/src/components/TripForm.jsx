@@ -59,6 +59,7 @@ export default function TripForm() {
     if (status === 'success') {
       setCaptcha(newCaptcha())
       setCaptchaInput('')
+      setSubmitted(false)
     }
   }, [status])
 
