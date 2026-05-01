@@ -5,7 +5,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-ORS_URL = "https://api.heigit.org/v2/directions/driving-car/geojson"
+ORS_URL = "https://api.openrouteservice.org/v2/directions/driving-car/geojson"
 HEADERS = {"User-Agent": "SpotterLog/1.0 (jaskel.systems@gmail.com)"}
 METERS_TO_MILES = 0.000621371
 SECONDS_TO_HOURS = 1 / 3600
