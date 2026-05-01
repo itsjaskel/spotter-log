@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,6 +8,8 @@ from .serializers import TripInputSerializer, TripOutputSerializer
 from .models import Trip
 from .routing_service import build_route
 from .hos_calculator import calculate_trip
+
+logger = logging.getLogger(__name__)
 
 
 class TripView(APIView):
@@ -24,7 +28,8 @@ class TripView(APIView):
             )
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception:
+        except Exception as e:
+            logger.exception("build_route failed: %s", e)
             return Response(
                 {"error": "Could not calculate route. Check location names and try again."},
                 status=status.HTTP_502_BAD_GATEWAY,
