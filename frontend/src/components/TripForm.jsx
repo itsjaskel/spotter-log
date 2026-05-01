@@ -122,7 +122,7 @@ export default function TripForm() {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="body2" sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>
-            ¿Cuánto es {captcha.a} + {captcha.b}?
+            What is {captcha.a} + {captcha.b}?
           </Typography>
           <TextField
             value={captchaInput}
