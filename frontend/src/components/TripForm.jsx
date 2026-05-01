@@ -132,7 +132,7 @@ export default function TripForm() {
             inputProps={{ min: 0 }}
             sx={{ width: 80 }}
             error={submitted && !captchaCorrect}
-            helperText={submitted && !captchaCorrect ? 'Incorrecto' : ''}
+            helperText={submitted && !captchaCorrect ? 'Incorrect answer' : ''}
           />
         </Box>
 
