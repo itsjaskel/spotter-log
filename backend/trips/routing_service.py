@@ -1,5 +1,8 @@
+import logging
 import os
 import requests
+
+logger = logging.getLogger(__name__)
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 ORS_URL = "https://api.heigit.org/v2/directions/driving-car/geojson"
@@ -40,6 +43,8 @@ def get_route(waypoints: list[dict]) -> dict:
         },
         timeout=15,
     )
+    if not response.ok:
+        logger.error("ORS error %s: %s", response.status_code, response.text[:500])
     response.raise_for_status()
     data = response.json()
 
