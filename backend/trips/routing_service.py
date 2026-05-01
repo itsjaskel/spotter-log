@@ -1,13 +1,13 @@
+import os
 import requests
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
-OSRM_URL = "https://router.project-osrm.org/route/v1/driving"
+ORS_URL = "https://api.heigit.org/v2/directions/driving-car/geojson"
 HEADERS = {"User-Agent": "SpotterLog/1.0 (jaskel.systems@gmail.com)"}
 METERS_TO_MILES = 0.000621371
 SECONDS_TO_HOURS = 1 / 3600
 
 
-# Converts a location string (city, address, etc.) to lat/lon coordinates using Nominatim.
 def geocode(location: str) -> dict:
     response = requests.get(
         NOMINATIM_URL,
@@ -27,25 +27,25 @@ def geocode(location: str) -> dict:
     }
 
 
-# Fetches the driving route between waypoints from OSRM, returning distance (miles),
-# duration (hours) per segment, and the full geometry for map rendering.
 def get_route(waypoints: list[dict]) -> dict:
-    coords = ";".join(f"{p['lon']},{p['lat']}" for p in waypoints)
-    response = requests.get(
-        f"{OSRM_URL}/{coords}",
-        params={"overview": "full", "geometries": "geojson", "steps": "false"},
-        headers=HEADERS,
+    api_key = os.environ.get("ORS_API_KEY", "")
+    coords = [[p["lon"], p["lat"]] for p in waypoints]
+    response = requests.post(
+        ORS_URL,
+        json={"coordinates": coords},
+        headers={
+            **HEADERS,
+            "Authorization": api_key,
+            "Content-Type": "application/json",
+        },
         timeout=15,
     )
     response.raise_for_status()
     data = response.json()
 
-    if data.get("code") != "Ok":
-        raise ValueError(f"OSRM routing error: {data.get('message', 'unknown')}")
-
-    route = data["routes"][0]
-    legs = route["legs"]
-    geometry_coords = route["geometry"]["coordinates"]  # [[lon, lat], ...]
+    feature = data["features"][0]
+    legs = feature["properties"]["segments"]
+    geometry_coords = feature["geometry"]["coordinates"]  # [[lon, lat], ...]
 
     segments = []
     for i, leg in enumerate(legs):
@@ -64,7 +64,6 @@ def get_route(waypoints: list[dict]) -> dict:
     }
 
 
-# Public entry point: geocodes the three locations and returns the full route data.
 def build_route(current_location: str, pickup_location: str, dropoff_location: str) -> dict:
     current = geocode(current_location)
     pickup = geocode(pickup_location)
