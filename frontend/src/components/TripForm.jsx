@@ -12,13 +12,23 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime'
 
 const INITIAL = { current_location: '', pickup_location: '', dropoff_location: '', current_cycle_hours: '' }
 
+function newCaptcha() {
+  const a = Math.floor(Math.random() * 10) + 1
+  const b = Math.floor(Math.random() * 10) + 1
+  return { a, b, answer: String(a + b) }
+}
+
 export default function TripForm() {
   const dispatch = useDispatch()
   const { status, error } = useSelector((state) => state.trip)
   const [form, setForm] = useState(INITIAL)
   const [submitted, setSubmitted] = useState(false)
+  const [captcha, setCaptcha] = useState(newCaptcha)
+  const [captchaInput, setCaptchaInput] = useState('')
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+
+  const captchaCorrect = captchaInput.trim() === captcha.answer
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -29,13 +39,19 @@ export default function TripForm() {
                     form.dropoff_location.trim() &&
                     form.current_cycle_hours !== '' &&
                     cycleVal >= 0 && cycleVal <= 70
-    if (!isValid) return
+    if (!isValid || !captchaCorrect) {
+      if (!captchaCorrect) setCaptcha(newCaptcha())
+      setCaptchaInput('')
+      return
+    }
     dispatch(fetchTrip({ ...form, current_cycle_hours: parseFloat(form.current_cycle_hours) }))
   }
 
   const handleReset = () => {
     setForm(INITIAL)
     setSubmitted(false)
+    setCaptcha(newCaptcha())
+    setCaptchaInput('')
     dispatch(resetTrip())
   }
 
@@ -103,6 +119,22 @@ export default function TripForm() {
           helperText={submitted && form.current_cycle_hours === '' ? 'This field is required' : submitted && (parseFloat(form.current_cycle_hours) < 0 || parseFloat(form.current_cycle_hours) > 70) ? 'Must be between 0 and 70' : ''}
           InputProps={{ startAdornment: <InputAdornment position="start"><AccessTimeIcon fontSize="small" color="action" /></InputAdornment> }}
         />
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>
+            ¿Cuánto es {captcha.a} + {captcha.b}?
+          </Typography>
+          <TextField
+            value={captchaInput}
+            onChange={(e) => setCaptchaInput(e.target.value)}
+            size="small"
+            type="number"
+            inputProps={{ min: 0 }}
+            sx={{ width: 80 }}
+            error={submitted && !captchaCorrect}
+            helperText={submitted && !captchaCorrect ? 'Incorrecto' : ''}
+          />
+        </Box>
 
         {error && <Alert severity="error">{error}</Alert>}
 
