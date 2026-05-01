@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchTrip, resetTrip } from '../store/tripSlice'
 import {
@@ -54,6 +54,13 @@ export default function TripForm() {
     setCaptchaInput('')
     dispatch(resetTrip())
   }
+
+  useEffect(() => {
+    if (status === 'success') {
+      setCaptcha(newCaptcha())
+      setCaptchaInput('')
+    }
+  }, [status])
 
   const isLoading = status === 'loading'
   const isDone = status === 'success'
